@@ -3,40 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Eloquent;
 
-class Clients extends Model
+class Clients extends Eloquent
 {
-    use HasFactory;
-
     // @var string $table
     // This protected member contains table name
     protected $table = 'clients';
 
-    public function getClientsDetailsById($clientId)
-    {
-        $clientDetails = DB::table($this->table)
-                        ->select('name','id')
-                        ->where([
-                            'id'=> $clientId
-                        ])->first();
-        if($clientDetails){
-            return $clientDetails;
-        }else{
-            return false;
-        }
-    }
-
     public function getCostDataForAllClients($clientIds = [])
     {
         $clientProjects = [];
-        $clientDetails = DB::table('clients')
+        $clientDetails = Clients::select('clients.id', 'clients.name', DB::raw('"client" as type'), DB::raw('SUM(costs.amount) AS amount'), DB::raw('"[]" as children'))
                         ->join('projects', 'projects.client_id', '=', 'clients.id')
                         ->join('costs', 'projects.id', '=', 'costs.project_id')
-                        ->join('cost_types', 'costs.cost_type_id', '=', 'cost_types.id')
-                        ->select('clients.id', 'clients.name', DB::raw('"client" as type'), DB::raw('SUM(costs.amount) AS amount'), DB::raw('"[]" as children'));
+                        ->join('cost_types', 'costs.cost_type_id', '=', 'cost_types.id');
         if (count($clientIds) > 0) {
             $clientDetails->whereIn('clients.id', $clientIds);
         }
@@ -51,11 +34,10 @@ class Clients extends Model
 
     public function getClientProjects($clientIds = [], $projectIds = [])
     {
-        $projectDetails = DB::table('projects')
+        $projectDetails = Projects::select('clients.id as client_id', 'projects.id', 'projects.title', DB::raw('"project" as type'), DB::raw('SUM(costs.amount) AS amount'), DB::raw('"[]" as children'))
                         ->join('clients', 'clients.id', '=', 'projects.client_id')
                         ->join('costs', 'projects.id', '=', 'costs.project_id')
-                        ->join('cost_types', 'costs.cost_type_id', '=', 'cost_types.id')
-                        ->select('clients.id as client_id', 'projects.id', 'projects.title', DB::raw('"project" as type'), DB::raw('SUM(costs.amount) AS amount'), DB::raw('"[]" as children'));
+                        ->join('cost_types', 'costs.cost_type_id', '=', 'cost_types.id');
         if (count($clientIds) > 0) {
             $projectDetails->whereIn('clients.id', $clientIds);
         }
@@ -123,4 +105,50 @@ class Clients extends Model
             return false;
         }
     }
+
+    /**
+     * Get the value of title.
+     *
+     * @return string
+     */
+    public function getType()
+    {
+        return 'client';
+    }
+
+    public function getProjects() { 
+        return $this->hasMany('App\Models\Projects', 'client_id'); 
+    }
+
+    /**
+     * Get all distinct tags attached to all posts by author.
+     * Can't use hasManyThrough on ManyToMany relationships, so we do this instead.
+     *
+     * @return array
+     */
+    public function projects()
+    {
+        $projects = Projects::select('clients.id as client_id', 'projects.id', 'projects.title', DB::raw('"project" as type'), DB::raw('SUM(costs.amount) AS amount'))
+            ->join('clients', 'clients.id', '=', 'projects.client_id')
+            ->join('costs', 'projects.id', '=', 'costs.project_id')
+            ->join('cost_types', 'costs.cost_type_id', '=', 'cost_types.id');
+
+        $projects = $projects->groupBy('projects.id')->get();
+
+        if (count($clientIds) > 0) {
+            $projectDetails->whereIn('clients.id', $clientIds);
+        }
+        if (count($projectIds) > 0) {
+            $projectDetails->whereIn('projects.id', $projectIds);
+        }
+
+        return $projects;
+    }
+
+    // results in a "problem", se examples below
+    public function children() {
+        return $this->getProjects();
+    }
+
+
 }

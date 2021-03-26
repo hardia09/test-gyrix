@@ -2,42 +2,44 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Eloquent;
 
-class User extends Authenticatable
+class CostTypes extends Eloquent
 {
-    use HasFactory, Notifiable;
-
-    /**
-     * The attributes that are mass assignable.
+	/**
+     * The database table used by the model.
      *
-     * @var array
+     * @var string
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    protected $table = 'cost_types';
 
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    //Add extra attribute
+	protected $attributes = ['type', 'amount'];
 
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-    ];
+	//Make it available in the json response
+	protected $appends = ['type', 'amount'];
+
+	//implement the attribute
+	public function getTypeAttribute()
+	{
+	    return 'cost';
+	}
+
+	//implement the attribute
+	public function getAmountAttribute()
+	{
+	    return 'amount';
+	}
+
+	public function parent()
+	{
+	     return $this->belongsTo('App\Models\CostTypes','parent_id')->where('parent_id', NULL)->with('parent') ;
+	}
+
+	 public function children()
+	 {
+	   return $this->hasMany('App\Models\CostTypes','parent_id')->with('children');
+	}
 }

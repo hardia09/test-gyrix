@@ -18,3 +18,4 @@ Route::get('/', function () {
 });
 
 Route::get('explorer', 'App\Http\Controllers\ExplorerController@indexAction');
+Route::get('explorerWithRelation', 'App\Http\Controllers\ExplorerController@allChildrenWithSingleQueryAndRelationAction');

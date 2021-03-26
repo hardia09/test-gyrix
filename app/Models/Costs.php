@@ -2,42 +2,51 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Eloquent;
 
-class User extends Authenticatable
+class Costs extends Eloquent
 {
-    use HasFactory, Notifiable;
+	/**
+     * The database table used by the model.
+     *
+     * @var string
+     */
+    protected $table = 'costs';
+
+    //Add extra attribute
+	protected $attributes = ['type', 'amount'];
+
+	//Make it available in the json response
+	protected $appends = ['type', 'amount'];
+
+	//implement the attribute
+	public function getTypeAttribute()
+	{
+	    return 'cost';
+	}
+
+	//implement the attribute
+	public function getAmountAttribute()
+	{
+	    return 'amount';
+	}
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
+     * Defines an inverse one-to-many relationship
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
-
+    public function project()
+    {
+        return $this->belongsTo('App\Models\Projects', 'project_id');
+    }
+    
     /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
+     * Defines an inverse many-to-many relationship
      */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-    ];
+    public function children()
+    {
+        return $this->belongsTo('App\Models\CostTypes', 'cost_type_id');
+    }
+    
 }
